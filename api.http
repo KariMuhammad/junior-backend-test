@@ -1,0 +1,50 @@
+@baseUrl = http://localhost:3000
+
+### Health
+GET {{baseUrl}}/health
+Accept: application/json
+
+### Admin login
+# Set ADMIN_EMAIL and ADMIN_PASSWORD in .env before running this request.
+# @name adminLogin
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{$dotenv ADMIN_EMAIL}}",
+  "password": "{{$dotenv ADMIN_PASSWORD}}"
+}
+
+### Save the admin token for protected requests added later
+@adminToken = {{adminLogin.response.body.$.token}}
+
+### Regular user login
+# @name userLogin
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{$dotenv USER_EMAIL}}",
+  "password": "{{$dotenv USER_PASSWORD}}"
+}
+
+### Login with a missing password
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{$dotenv ADMIN_EMAIL}}"
+}
+
+### Login with the wrong password
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{$dotenv ADMIN_EMAIL}}",
+  "password": "wrong-password"
+}
+
+### Unknown route
+GET {{baseUrl}}/does-not-exist
+Accept: application/json
