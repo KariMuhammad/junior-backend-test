@@ -3,6 +3,7 @@ import helmet from "helmet";
 
 import { errorHandler } from "./middleware/error-handler";
 import authRouter from "./routes/auth.routes";
+import productRouter from "./routes/product.routes";
 
 export const app = express();
 
@@ -15,6 +16,7 @@ app.get("/health", (_request, response) => {
 });
 
 app.use("/auth", authRouter);
+app.use("/products", productRouter);
 
 app.use((_request, response) => {
   response.status(404).json({ message: "Route not found" });
