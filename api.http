@@ -18,6 +18,38 @@ Content-Type: application/json
 ### Save the admin token for protected requests added later
 @adminToken = {{adminLogin.response.body.$.token}}
 
+### List products, page 1
+# @name productList
+GET {{baseUrl}}/products?page=1
+Accept: application/json
+
+### Save the first product ID for the detail request
+@productId = {{productList.response.body.$.data[0]._id}}
+
+### List products, page 2
+GET {{baseUrl}}/products?page=2
+Accept: application/json
+
+### List an empty page
+GET {{baseUrl}}/products?page=999999
+Accept: application/json
+
+### Invalid page
+GET {{baseUrl}}/products?page=0
+Accept: application/json
+
+### Get the first listed product
+GET {{baseUrl}}/products/{{productId}}
+Accept: application/json
+
+### Get a missing product
+GET {{baseUrl}}/products/000000000000000000000000
+Accept: application/json
+
+### Get a product with a malformed ID
+GET {{baseUrl}}/products/not-an-object-id
+Accept: application/json
+
 ### Regular user login
 # @name userLogin
 POST {{baseUrl}}/auth/login
