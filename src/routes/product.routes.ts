@@ -1,10 +1,72 @@
+import { body, validationResult } from "express-validator";
+import type { NextFunction, Request, Response } from "express";
 import { Router } from "express";
 
+import { requireAuthentication } from "../middleware/authentication";
+import { requireAdmin } from "../middleware/authorization";
 import { ProductModel } from "../models/product.model";
 
 const router = Router();
 const PAGE_SIZE = 10;
 const MAX_PAGE = Math.floor(Number.MAX_SAFE_INTEGER / PAGE_SIZE);
+
+const productValidation = [
+  body("name")
+    .custom((value) => typeof value === "string" && value.trim().length > 0)
+    .withMessage("Name is required")
+    .trim(),
+  body("category")
+    .optional()
+    .isString()
+    .withMessage("Category must be a string"),
+  body("price")
+    .custom(
+      (value) =>
+        typeof value === "number" &&
+        Number.isFinite(value) &&
+        value > 0,
+    )
+    .withMessage("Price must be a positive number"),
+  body("quantity")
+    .custom(
+      (value) =>
+        typeof value === "number" &&
+        Number.isInteger(value) &&
+        value >= 0,
+    )
+    .withMessage("Quantity must be a non-negative integer"),
+];
+
+function handleValidationErrors(
+  request: Request,
+  response: Response,
+  next: NextFunction,
+): void {
+  const errors = validationResult(request);
+
+  if (!errors.isEmpty()) {
+    response.status(400).json({
+      message: "Validation failed",
+      errors: errors.array(),
+    });
+    return;
+  }
+
+  next();
+}
+
+function validateProductId(
+  request: Request<{ id: string }>,
+  response: Response,
+  next: NextFunction,
+): void {
+  if (!/^[a-f\d]{24}$/i.test(request.params.id)) {
+    response.status(400).json({ message: "Invalid product ID" });
+    return;
+  }
+
+  next();
+}
 
 function parsePage(value: unknown): number | null {
   if (value === undefined) {
@@ -68,5 +130,73 @@ router.get("/:id", async (request, response) => {
 
   response.status(200).json({ data: product });
 });
+
+router.post(
+  "/",
+  requireAuthentication,
+  requireAdmin,
+  productValidation,
+  handleValidationErrors,
+  async (request: Request, response: Response) => {
+    const product = await ProductModel.create({
+      name: request.body.name,
+      category: request.body.category,
+      price: request.body.price,
+      quantity: request.body.quantity,
+    });
+
+    response.status(201).json({ data: product });
+  },
+);
+
+router.put(
+  "/:id",
+  requireAuthentication,
+  requireAdmin,
+  validateProductId,
+  productValidation,
+  handleValidationErrors,
+  async (request: Request<{ id: string }>, response: Response) => {
+    const changes = {
+      name: request.body.name,
+      price: request.body.price,
+      quantity: request.body.quantity,
+    };
+    const update =
+      request.body.category === undefined
+        ? { $set: changes, $unset: { category: 1 } }
+        : { $set: { ...changes, category: request.body.category } };
+
+    const product = await ProductModel.findByIdAndUpdate(
+      request.params.id,
+      update,
+      { new: true, runValidators: true },
+    );
+
+    if (!product) {
+      response.status(404).json({ message: "Product not found" });
+      return;
+    }
+
+    response.status(200).json({ data: product });
+  },
+);
+
+router.delete(
+  "/:id",
+  requireAuthentication,
+  requireAdmin,
+  validateProductId,
+  async (request: Request<{ id: string }>, response: Response) => {
+    const product = await ProductModel.findByIdAndDelete(request.params.id);
+
+    if (!product) {
+      response.status(404).json({ message: "Product not found" });
+      return;
+    }
+
+    response.status(204).send();
+  },
+);
 
 export default router;
