@@ -8,6 +8,23 @@ import { UserModel } from "../models/user.model";
 
 const router = Router();
 
+function isLoginBody(
+  value: unknown,
+): value is { email: string; password: string } {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return false;
+  }
+
+  const body = value as Record<string, unknown>;
+
+  return (
+    typeof body.email === "string" &&
+    typeof body.password === "string" &&
+    body.email.trim().length > 0 &&
+    body.password.length > 0
+  );
+}
+
 const loginRateLimit = rateLimit({
   windowMs: env.loginRateLimitWindowMs,
   limit: env.loginRateLimitMax,
@@ -19,14 +36,9 @@ const loginRateLimit = rateLimit({
 });
 
 router.post("/login", loginRateLimit, async (request, response) => {
-  const body = request.body as { email?: unknown; password?: unknown };
+  const body: unknown = request.body;
 
-  if (
-    typeof body?.email !== "string" ||
-    typeof body.password !== "string" ||
-    !body.email.trim() ||
-    !body.password
-  ) {
+  if (!isLoginBody(body)) {
     response.status(400).json({ message: "Email and password are required" });
     return;
   }

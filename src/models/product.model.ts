@@ -43,4 +43,9 @@ const productSchema = new Schema<Product>(
   },
 );
 
+// Keep the indexes used by the documented category/price query and by the
+// default product list in sync with the application's sort order.
+productSchema.index({ category: 1, price: -1, _id: 1 });
+productSchema.index({ createdAt: -1, _id: -1 });
+
 export const ProductModel = model<Product>("Product", productSchema);

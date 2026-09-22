@@ -18,6 +18,38 @@ Content-Type: application/json
 ### Save the admin token for protected requests added later
 @adminToken = {{adminLogin.response.body.$.token}}
 
+### Create a product as an admin
+# @name createProduct
+POST {{baseUrl}}/products
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "REST Client Demo Product",
+  "category": "Electronics",
+  "price": 99.99,
+  "quantity": 10
+}
+
+### Save the created product ID
+@createdProductId = {{createProduct.response.body.$.data._id}}
+
+### Update the created product as an admin
+PUT {{baseUrl}}/products/{{createdProductId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "Updated REST Client Demo Product",
+  "category": "Electronics",
+  "price": 109.99,
+  "quantity": 8
+}
+
+### Delete the created product as an admin
+DELETE {{baseUrl}}/products/{{createdProductId}}
+Authorization: Bearer {{adminToken}}
+
 ### List products, page 1
 # @name productList
 GET {{baseUrl}}/products?page=1
@@ -58,6 +90,20 @@ Content-Type: application/json
 {
   "email": "{{$dotenv USER_EMAIL}}",
   "password": "{{$dotenv USER_PASSWORD}}"
+}
+
+### Save the regular user token
+@userToken = {{userLogin.response.body.$.token}}
+
+### A regular user cannot create products
+POST {{baseUrl}}/products
+Authorization: Bearer {{userToken}}
+Content-Type: application/json
+
+{
+  "name": "Unauthorized Product",
+  "price": 10,
+  "quantity": 1
 }
 
 ### Login with a missing password
